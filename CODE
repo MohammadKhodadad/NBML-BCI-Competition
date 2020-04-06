@@ -1,0 +1,86 @@
+#yuSkImAFry
+import numpy as np
+import pandas as pd 
+import scipy 
+import sklearn
+import tensorflow as tf
+from tensorflow import keras
+from sklearn.preprocessing import OneHotEncoder
+import os
+import h5py
+from scipy.io import loadmat
+from scipy.signal import butter, lfilter, boxcar
+from google.colab import drive
+from scipy import signal
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LogisticRegression
+import sklearn.discriminant_analysis
+drive.mount('/content/drive')
+
+
+tot_results=np.zeros((15,600,4))
+
+#change it with your directory
+
+for subject in range(1,16):
+
+  #change it with your directory
+  os.chdir('/content//drive//My Drive//bcic')
+ 
+  print(f"subject:{subject}")
+  
+  ss=sklearn.preprocessing.StandardScaler()
+  f = h5py.File(f'subj_{subject}.mat', 'r')
+  train_input=[]
+  train_output=np.zeros((1000,4))
+  for i in range(4):
+    train_input.append(np.reshape(np.array(f[f'train_data_class{i+1}']),(250,720,63)))
+    for j in range(250):
+      train_output[j+250*i][i]=1
+      
+      
+  #model checkpoint directory set it as you like
+  os.chdir('/content')
+  
+  
+  #here we take frequencies less than 66 as our input
+  
+  freq_limit=20
+  test_input=f['test_data']
+  test_input=np.reshape(test_input,(600,720,63))
+ 
+  train_input=np.array(train_input)
+  train_input=np.reshape(train_input,(1000,720,63))
+  
+  freqs=scipy.fft.fft(train_input,axis=1)
+  
+  freqs=freqs[:,:freq_limit,:]
+  freqs=np.reshape(freqs,(1000,freq_limit*63))
+  freqs=ss.fit_transform(np.abs(freqs))
+  
+  
+  test_freqs=scipy.fft.fft(test_input,axis=1)
+  test_freqs=test_freqs[:,:freq_limit,:]
+  test_freqs=np.reshape(test_freqs,(600,freq_limit*63))
+  test_freqs=ss.fit_transform(np.abs(test_freqs))
+  
+  
+  X_train, X_test, y_train, y_test=sklearn.model_selection.train_test_split(freqs,train_output,test_size=0.3)
+  
+  
+  model=keras.models.Sequential()
+  x=0.055
+  model.add(keras.layers.Dense(100,tf.nn.relu,input_shape=(freq_limit*63,),kernel_regularizer=keras.regularizers.l2(x),bias_regularizer=keras.regularizers.l2(x)))
+  model.add(keras.layers.Dense(20,tf.nn.relu,kernel_regularizer=keras.regularizers.l2(x),bias_regularizer=keras.regularizers.l2(x)))
+  model.add(keras.layers.Dense(4,tf.nn.softmax,kernel_regularizer=keras.regularizers.l2(x),bias_regularizer=keras.regularizers.l2(x)))
+  model.compile(optimizer='rmsprop',
+                loss='categorical_crossentropy',
+                metrics=['accuracy'])
+  checkpoint = keras.callbacks.ModelCheckpoint("cp.hdf5", monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
+
+  model.fit(X_train,y_train,batch_size=32,epochs=200,validation_data=(X_test,y_test),callbacks=[checkpoint])
+  model.load_weights("cp.hdf5")
+  result=model.predict(test_freqs)
+
+
+  tot_results[subject-1]=model.predict(test_freqs)
