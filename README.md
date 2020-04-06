@@ -1,4 +1,4 @@
-# NBML_EEG_CONTEST_DEEP_LEARNING
+# NBML_BCI_CONTEST_DEEP_LEARNING
 
 
 A bci competition held in Iran by National Brain Mapping Laboratory (NBML)
