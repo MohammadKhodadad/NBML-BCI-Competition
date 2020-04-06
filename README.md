@@ -1,6 +1,7 @@
 # NBML_EEG_CONTEST_DEEP_LEARNING
 
 
-It's a bci competition held in Iran.
+A bci competition held in Iran by National Brain Mapping Laboratory (NBML)
 
-a simple deep learning model is used as the classifier.
+A simple deep learning model is used as the classifier.
+
